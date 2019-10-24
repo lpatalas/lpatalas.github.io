@@ -20,16 +20,12 @@ body > header {
     font-size: 20pt;
 }
 
-section.projects {
-    display: flex;
-}
-
-a.project {
+section.projects > a {
     align-items: center;
     background-color: #000;
     border-radius: 5px;
     color: #fff;
-    display: flex;
+    display: inline-flex;
     flex-direction: column;
     margin: 20px;
     text-decoration: none;
@@ -37,17 +33,17 @@ a.project {
     width: 256px;
 }
 
-a.project:hover {
+section.projects > a:hover {
     box-shadow: 0 0 1em #888;
     transition: box-shadow 200ms;
 }
 
-a.project > img {
+section.projects > a > img {
     height: 160px;
     width: 256px;
 }
 
-a.project > summary {
+section.projects > a > summary {
     font-family: monospace;
     font-size: 16pt;
     padding: 5px;
