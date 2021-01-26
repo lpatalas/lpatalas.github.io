@@ -1,0 +1,10 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": {
+        "outFile": "public/script.js",
+        "strict": true
+    },
+    "include": [
+        "src/*.ts"
+    ]
+}
