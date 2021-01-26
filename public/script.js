@@ -3,12 +3,16 @@ function CommandInterpreter(fileSystem) {
     var commands = {
         "cd": changeDir,
         "cls": clearScreen,
+        "echo": echo,
         "help": showHelp,
         "ls": printDir
     };
     function clearScreen() {
         document.getElementById('console').innerHTML = '';
         return '';
+    }
+    function echo(input) {
+        return input;
     }
     function printDir(path) {
         var fullPath = fileSystem.getFullPath(path || '.');

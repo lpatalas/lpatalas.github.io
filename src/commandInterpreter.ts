@@ -10,6 +10,7 @@ function CommandInterpreter(fileSystem: FileSystem): CommandInterpreter {
     const commands: CommandMap = {
         "cd": changeDir,
         "cls": clearScreen,
+        "echo": echo,
         "help": showHelp,
         "ls": printDir
     }
@@ -17,6 +18,10 @@ function CommandInterpreter(fileSystem: FileSystem): CommandInterpreter {
     function clearScreen() {
         document.getElementById('console')!.innerHTML = '';
         return '';
+    }
+
+    function echo(input: string) {
+        return input;
     }
     
     function printDir(path: string) {
