@@ -106,7 +106,6 @@ function FileSystem() {
         var currentDir = root;
         var matchedSegments = 0;
         while (matchedSegments < segments.length) {
-            matchedSegments++;
             var childDir = currentDir[segments[matchedSegments]];
             if (typeof childDir === 'string') {
                 break;
@@ -115,8 +114,14 @@ function FileSystem() {
             if (!currentDir) {
                 break;
             }
+            matchedSegments++;
         }
-        return currentDir;
+        if (matchedSegments === segments.length) {
+            return currentDir;
+        }
+        else {
+            return null;
+        }
     }
     function getFullPath(path) {
         if (path === '.') {
@@ -150,6 +155,7 @@ function main() {
     var terminal = Terminal(commandInterpreter, fileSystem);
     var keyRegex = /^[a-z0-9~`!@#$%^&*()_+={}\[\]|\\:;"'<,>.?\/ -]$/i;
     document.addEventListener('keydown', function (e) {
+        ~console.log(e.key);
         if (e.key === 'Backspace') {
             terminal.eraseLastChar();
         }

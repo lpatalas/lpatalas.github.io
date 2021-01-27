@@ -5,7 +5,7 @@ type FileSystemEntry = string | DirectoryEntry;
 interface FileSystem {
     getCurrentPath(): string;
     setCurrentPath(path: string): void;
-    getDirectory(path: string): DirectoryEntry;
+    getDirectory(path: string): DirectoryEntry | null;
     getFullPath(path: string): string;
 }
 
@@ -41,8 +41,6 @@ function FileSystem(): FileSystem {
         let matchedSegments = 0;
     
         while (matchedSegments < segments.length) {
-            matchedSegments++;
-    
             const childDir = currentDir[segments[matchedSegments]];
             if (typeof childDir === 'string') {
                 break;
@@ -52,10 +50,16 @@ function FileSystem(): FileSystem {
             if (!currentDir) {
                 break;
             }
+
+            matchedSegments++;
         }
     
-        
-        return currentDir;
+        if (matchedSegments === segments.length) {
+            return currentDir;
+        }
+        else {
+            return null;
+        }
     }
 
     function getFullPath(path: string) {
