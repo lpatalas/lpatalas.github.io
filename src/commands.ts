@@ -16,8 +16,8 @@ function Commands(fileSystem: FileSystem): CommandMap {
         return '';
     }
 
-    function echo(input: string) {
-        return input;
+    function echo(...args: string[]) {
+        return args.join(' ');
     }
     
     function printDir(path: string) {

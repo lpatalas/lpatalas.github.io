@@ -9,6 +9,16 @@ function Terminal(commandDispatcher: CommandDispatcher, fileSystem: FileSystem):
         return document.getElementById('currentInput') as HTMLElement;
     }
 
+    function findLastElement(selector: string) {
+        const allElements = document.querySelectorAll(selector);
+        if (allElements.length > 0) {
+            return allElements[allElements.length - 1];
+        }
+        else {
+            return null;
+        }
+    }
+
     function appendChar(c: string) {
         getCurrentInputElement().innerText += c;
     }
@@ -35,16 +45,16 @@ function Terminal(commandDispatcher: CommandDispatcher, fileSystem: FileSystem):
 
         document.getElementById('console')!.innerHTML += `
             <div class="out">
-                ${output}
+                <pre>${output}</pre>
             </div>
             <div class="in">
-                <span class="cwd">${fileSystem.getCurrentPath()}</span>&gt; <span class="input" id="currentInput"></span>
+                <span class="cwd">${fileSystem.getCurrentPath()}</span>&gt; <pre class="input" id="currentInput"></pre>
             </div>
             `;
     }
 
-    document.querySelector('span.input')!.id = 'currentInput';
-    document.querySelectorAll('span.cwd').forEach(function(el) {
+    findLastElement('.input')!.id = 'currentInput';
+    document.querySelectorAll('.cwd').forEach(el => {
         (el as HTMLElement).innerText = fileSystem.getCurrentPath();
     });
 

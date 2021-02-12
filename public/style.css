@@ -21,6 +21,9 @@ a {
     color: #262;
     font-weight: normal;
 }
+pre {
+    display: inline;
+}
 .input#currentInput:after {
     animation-duration: 0.7s;
     animation-direction: alternate;

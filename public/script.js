@@ -1,18 +1,20 @@
 "use strict";
-function CommandInterpreter(commands) {
+function CommandDispatcher(tokenize, commands) {
     function execute(commandText) {
-        var commandRegex = /^\s*([a-z]+)\s*(.*)/i;
-        var match = commandRegex.exec(commandText);
-        if (match) {
-            var commandCallback = commands[match[1]];
-            if (commandCallback) {
-                return commandCallback(match[2]);
+        var tokens = tokenize(commandText);
+        if (tokens.length === 0) {
+            return '';
+        }
+        else {
+            var commandName = tokens[0], args = tokens.slice(1);
+            var command = commands[commandName];
+            if (command) {
+                return command.apply({}, args);
             }
             else {
-                return "Unknown command: " + match[1];
+                return "Unknown command: " + commandName;
             }
         }
-        return "Invalid input";
     }
     return {
         execute: execute
@@ -30,8 +32,12 @@ function Commands(fileSystem) {
         document.getElementById('console').innerHTML = '';
         return '';
     }
-    function echo(input) {
-        return input;
+    function echo() {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        return args.join(' ');
     }
     function printDir(path) {
         var fullPath = fileSystem.getFullPath(path || '.');
@@ -155,8 +161,8 @@ main();
 function main() {
     var fileSystem = FileSystem();
     var commands = Commands(fileSystem);
-    var commandInterpreter = CommandInterpreter(commands);
-    var terminal = Terminal(commandInterpreter, fileSystem);
+    var commandDispatcher = CommandDispatcher(tokenize, commands);
+    var terminal = Terminal(commandDispatcher, fileSystem);
     var keyRegex = /^[a-z0-9~`!@#$%^&*()_+={}\[\]|\\:;"'<,>.?\/ -]$/i;
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Backspace') {
@@ -170,9 +176,18 @@ function main() {
         }
     });
 }
-function Terminal(commandInterpreter, fileSystem) {
+function Terminal(commandDispatcher, fileSystem) {
     function getCurrentInputElement() {
         return document.getElementById('currentInput');
+    }
+    function findLastElement(selector) {
+        var allElements = document.querySelectorAll(selector);
+        if (allElements.length > 0) {
+            return allElements[allElements.length - 1];
+        }
+        else {
+            return null;
+        }
     }
     function appendChar(c) {
         getCurrentInputElement().innerText += c;
@@ -192,11 +207,11 @@ function Terminal(commandInterpreter, fileSystem) {
     function submitInput() {
         var input = getCurrentInputElement();
         input.id = '';
-        var output = commandInterpreter.execute(input.innerText);
-        document.getElementById('console').innerHTML += "\n            <div class=\"out\">\n                " + output + "\n            </div>\n            <div class=\"in\">\n                <span class=\"cwd\">" + fileSystem.getCurrentPath() + "</span>&gt; <span class=\"input\" id=\"currentInput\"></span>\n            </div>\n            ";
+        var output = commandDispatcher.execute(input.innerText);
+        document.getElementById('console').innerHTML += "\n            <div class=\"out\">\n                <pre>" + output + "</pre>\n            </div>\n            <div class=\"in\">\n                <span class=\"cwd\">" + fileSystem.getCurrentPath() + "</span>&gt; <pre class=\"input\" id=\"currentInput\"></pre>\n            </div>\n            ";
     }
-    document.querySelector('span.input').id = 'currentInput';
-    document.querySelectorAll('span.cwd').forEach(function (el) {
+    findLastElement('.input').id = 'currentInput';
+    document.querySelectorAll('.cwd').forEach(function (el) {
         el.innerText = fileSystem.getCurrentPath();
     });
     return {
@@ -204,4 +219,60 @@ function Terminal(commandInterpreter, fileSystem) {
         eraseLastChar: eraseLastChar,
         submitInput: submitInput
     };
+}
+function tokenize(input) {
+    var tokens = [];
+    var parseResult = parseNextToken(input);
+    while (parseResult != null) {
+        tokens.push(parseResult.token);
+        parseResult = parseNextToken(parseResult.rest);
+    }
+    return tokens;
+    function parseNextToken(input) {
+        var i = 0;
+        while (isWhitespace(input[i])) {
+            i++;
+        }
+        if (i == input.length) {
+            return null;
+        }
+        if (input[i] == '"') {
+            return parseQuotedToken(input, i);
+        }
+        else {
+            return parseUnquotedToken(input, i);
+        }
+    }
+    function parseQuotedToken(input, startIndex) {
+        var endIndex = skipWhile(isNotQuote, input, startIndex + 1);
+        var restIndex = endIndex < input.length ? endIndex + 1 : endIndex;
+        var token = input.substring(startIndex + 1, endIndex).replace('\\"', '"');
+        return {
+            token: token,
+            rest: input.substring(restIndex)
+        };
+    }
+    function isNotQuote(c, prev) {
+        return c !== '"' || prev === '\\';
+    }
+    function parseUnquotedToken(input, startIndex) {
+        var endIndex = skipWhile(isNotWhitespace, input, startIndex);
+        return {
+            token: input.substring(startIndex, endIndex),
+            rest: input.substring(endIndex)
+        };
+    }
+    function skipWhile(predicate, input, startIndex) {
+        var i = startIndex;
+        while (i < input.length && predicate(input[i], i > 0 ? input[i - 1] : null)) {
+            i++;
+        }
+        return i;
+    }
+    function isWhitespace(c) {
+        return c === ' ' || c === '\t';
+    }
+    function isNotWhitespace(c) {
+        return !isWhitespace(c);
+    }
 }
