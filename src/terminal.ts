@@ -4,7 +4,7 @@ interface Terminal {
     submitInput(): void;
 }
 
-function Terminal(commandInterpreter: CommandInterpreter, fileSystem: FileSystem): Terminal {
+function Terminal(commandDispatcher: CommandDispatcher, fileSystem: FileSystem): Terminal {
     function getCurrentInputElement() {
         return document.getElementById('currentInput') as HTMLElement;
     }
@@ -31,7 +31,7 @@ function Terminal(commandInterpreter: CommandInterpreter, fileSystem: FileSystem
     function submitInput() {
         const input = getCurrentInputElement();   
         input.id = '';
-        var output = commandInterpreter.execute(input.innerText);
+        var output = commandDispatcher.execute(input.innerText);
 
         document.getElementById('console')!.innerHTML += `
             <div class="out">

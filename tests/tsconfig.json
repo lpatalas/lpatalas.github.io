@@ -1,0 +1,13 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "outFile": "generated.test.js"
+    },
+    "include": [
+        "../src/*.ts",
+        "./*.test.ts"
+    ],
+    "exclude": [
+        "../src/main.ts"
+    ]
+}

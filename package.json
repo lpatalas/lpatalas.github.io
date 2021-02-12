@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "pretest": "tsc --project tests/tsconfig.json",
+    "test": "jasmine --config=tests/jasmine.json"
   },
   "repository": {
     "type": "git",
@@ -15,6 +17,10 @@
   },
   "homepage": "https://github.com/lpatalas/lpatalas.github.io",
   "devDependencies": {
+    "@types/jasmine": "^3.6.3",
+    "jasmine": "^3.6.4",
+    "ts-node": "^9.1.1",
     "typescript": "^4.1.3"
-  }
+  },
+  "dependencies": {}
 }

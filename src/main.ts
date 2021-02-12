@@ -2,7 +2,8 @@ main();
 
 function main() {
     const fileSystem = FileSystem();
-    const commandInterpreter = CommandInterpreter(fileSystem);
+    const commands = Commands(fileSystem);
+    const commandInterpreter = CommandInterpreter(tokenize, commands);
     const terminal = Terminal(commandInterpreter, fileSystem);
     
     var keyRegex = /^[a-z0-9~`!@#$%^&*()_+={}\[\]|\\:;"'<,>.?\/ -]$/i;

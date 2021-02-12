@@ -1,5 +1,24 @@
 "use strict";
-function CommandInterpreter(fileSystem) {
+function CommandInterpreter(commands) {
+    function execute(commandText) {
+        var commandRegex = /^\s*([a-z]+)\s*(.*)/i;
+        var match = commandRegex.exec(commandText);
+        if (match) {
+            var commandCallback = commands[match[1]];
+            if (commandCallback) {
+                return commandCallback(match[2]);
+            }
+            else {
+                return "Unknown command: " + match[1];
+            }
+        }
+        return "Invalid input";
+    }
+    return {
+        execute: execute
+    };
+}
+function Commands(fileSystem) {
     var commands = {
         "cd": changeDir,
         "cls": clearScreen,
@@ -62,23 +81,7 @@ function CommandInterpreter(fileSystem) {
         var commandNames = Object.getOwnPropertyNames(commands).join(', ');
         return "\n            Available commands: " + commandNames + ".<br>\n            If you need more help then create an issue here:\n            <a href=\"https://github.com/lpatalas/lpatalas.github.io/issues\">\n                https://github.com/lpatalas/lpatalas.github.io/issues\n            </a>";
     }
-    function execute(commandText) {
-        var commandRegex = /^\s*([a-z]+)\s*(.*)/i;
-        var match = commandRegex.exec(commandText);
-        if (match) {
-            var commandCallback = commands[match[1]];
-            if (commandCallback) {
-                return commandCallback(match[2]);
-            }
-            else {
-                return "Unknown command: " + match[1];
-            }
-        }
-        return "Invalid input";
-    }
-    return {
-        execute: execute
-    };
+    return commands;
 }
 function FileSystem() {
     var currentPath = window.sessionStorage['currentPath'] || '~';
@@ -151,11 +154,11 @@ function FileSystem() {
 main();
 function main() {
     var fileSystem = FileSystem();
-    var commandInterpreter = CommandInterpreter(fileSystem);
+    var commands = Commands(fileSystem);
+    var commandInterpreter = CommandInterpreter(commands);
     var terminal = Terminal(commandInterpreter, fileSystem);
     var keyRegex = /^[a-z0-9~`!@#$%^&*()_+={}\[\]|\\:;"'<,>.?\/ -]$/i;
     document.addEventListener('keydown', function (e) {
-        ~console.log(e.key);
         if (e.key === 'Backspace') {
             terminal.eraseLastChar();
         }
