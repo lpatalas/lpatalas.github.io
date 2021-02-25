@@ -17,11 +17,11 @@ function Commands(fileSystem: FileSystem): CommandMap {
     }
 
     function echo(...args: string[]) {
-        return args.join(' ');
+        return `<pre>${args.join(' ')}</pre>`;
     }
     
     function printDir(path: string) {
-        var fullPath = fileSystem.getFullPath(path || '.');
+        var fullPath = fileSystem.getAbsolutePath(path || '.');
         if (!fullPath) {
             return `Invalid path: ${path}`;
         }
@@ -49,7 +49,7 @@ function Commands(fileSystem: FileSystem): CommandMap {
     }
     
     function changeDir(path: string) {
-        var fullPath = fileSystem.getFullPath(path || '.');
+        var fullPath = fileSystem.getAbsolutePath(path || '.');
         if (!fullPath) {
             return `Invalid path: ${path}`;
         }

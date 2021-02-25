@@ -37,7 +37,7 @@ function Commands(fileSystem) {
         for (var _i = 0; _i < arguments.length; _i++) {
             args[_i] = arguments[_i];
         }
-        return args.join(' ');
+        return "<pre>" + args.join(' ') + "</pre>";
     }
     function printDir(path) {
         var fullPath = fileSystem.getFullPath(path || '.');
@@ -209,6 +209,7 @@ function Terminal(commandDispatcher, fileSystem) {
         input.id = '';
         var output = commandDispatcher.execute(input.innerText);
         document.getElementById('console').innerHTML += "\n            <div class=\"out\">\n                <pre>" + output + "</pre>\n            </div>\n            <div class=\"in\">\n                <span class=\"cwd\">" + fileSystem.getCurrentPath() + "</span>&gt; <pre class=\"input\" id=\"currentInput\"></pre>\n            </div>\n            ";
+        getCurrentInputElement().scrollIntoView();
     }
     findLastElement('.input').id = 'currentInput';
     document.querySelectorAll('.cwd').forEach(function (el) {

@@ -45,12 +45,14 @@ function Terminal(commandDispatcher: CommandDispatcher, fileSystem: FileSystem):
 
         document.getElementById('console')!.innerHTML += `
             <div class="out">
-                <pre>${output}</pre>
+                ${output}
             </div>
             <div class="in">
                 <span class="cwd">${fileSystem.getCurrentPath()}</span>&gt; <pre class="input" id="currentInput"></pre>
             </div>
             `;
+
+        getCurrentInputElement().scrollIntoView();
     }
 
     findLastElement('.input')!.id = 'currentInput';

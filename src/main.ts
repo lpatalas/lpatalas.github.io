@@ -1,7 +1,20 @@
 main();
 
 function main() {
-    const fileSystem = FileSystem();
+    const rootDirectory = {
+        "~": {
+            "projects": {
+                "linespace": "https://linespace.lpatalas.com",
+                "fblocks": "https://fblocks.lpatalas.com",
+                "mandelbrot": "https://mandelbrot.lpatalas.com"
+            },
+            "links": {
+                "github": "https://github.com/lpatalas"
+            }
+        }
+    };
+
+    const fileSystem = FileSystem(rootDirectory, window.sessionStorage);
     const commands = Commands(fileSystem);
     const commandDispatcher = CommandDispatcher(tokenize, commands);
     const terminal = Terminal(commandDispatcher, fileSystem);

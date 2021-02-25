@@ -1,6 +1,6 @@
 ///<reference path="../src/commandDispatcher.ts" />
 
-describe('commandDispatcher', () => {
+describe('CommandDispatcher', () => {
     const testCases = [
         { input: [], expected: '' },
         { input: ['bar'], expected: 'Unknown command: bar' },
