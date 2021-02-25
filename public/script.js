@@ -86,17 +86,11 @@ function fileUrl(url) {
 function dir(children) {
     return { type: 'directory', children: children };
 }
-function errorNode(message) {
-    return { type: 'error', message: message };
-}
 function isDirectoryNode(node) {
     return node !== null && node.type === 'directory';
 }
 function isFileNode(node) {
     return node !== null && node.type === 'file';
-}
-function isErrorNode(node) {
-    return node !== null && node.type === 'error';
 }
 function isDirectory(entry) {
     return typeof entry !== 'string';
@@ -147,26 +141,14 @@ function FileSystem(root, sessionStorage) {
         return currentPath;
     }
     function setCurrentPath(path) {
-        var absolutePath = getAbsolutePath(path, currentPath);
-        if (!absolutePath) {
-            throw new Error("Invalid path: " + path);
-        }
-        var node = getNode(absolutePath);
-        if (isErrorNode(node)) {
-            throw new Error(node.message);
-        }
-        if (!isDirectoryNode(node)) {
-            throw new Error("Not a directory: " + absolutePath);
-        }
-        currentPath = (absolutePath[absolutePath.length - 1] !== '/'
-            ? absolutePath + '/'
-            : absolutePath);
+        var node = getDirectoryNode(path);
+        currentPath = node.absolutePath;
         sessionStorage['currentPath'] = currentPath;
     }
     function getNode(path) {
         var absolutePath = getAbsolutePath(path, currentPath);
         if (absolutePath == null) {
-            return errorNode("Invalid path: " + path);
+            throw new Error("Invalid path: " + path);
         }
         var segments = getPathSegments(absolutePath);
         var currentNode = root;
@@ -178,34 +160,30 @@ function FileSystem(root, sessionStorage) {
             var childNode = currentNode.children[nodeName];
             if (!childNode) {
                 var invalidSubpath = segments.slice(0, i + 1).join('');
-                return errorNode("Path does not exist: " + invalidSubpath);
+                throw new Error("Path does not exist: " + invalidSubpath);
             }
             if (isFileNode(childNode)) {
                 if (i < segments.length - 1 || segment[segment.length - 1] === '/') {
                     var invalidSubpath = segments.slice(0, i + 1).join('');
-                    return errorNode("Not a directory: " + invalidSubpath);
+                    throw new Error("Not a directory: " + invalidSubpath);
                 }
-                return childNode;
+                return { absolutePath: absolutePath, node: childNode };
             }
             else if (isDirectoryNode(childNode)) {
                 currentNode = childNode;
             }
         }
-        return currentNode;
+        var resultPath = (absolutePath[absolutePath.length - 1] !== '/'
+            ? absolutePath + '/'
+            : absolutePath);
+        return { absolutePath: resultPath, node: currentNode };
     }
     function getDirectoryNode(path) {
-        var absolutePath = getAbsolutePath(path, currentPath);
-        if (!absolutePath) {
-            throw new Error("Invalid path: " + path);
+        var result = getNode(path);
+        if (!isDirectoryNode(result.node)) {
+            throw new Error("Not a directory: " + result.absolutePath);
         }
-        var node = getNode(absolutePath);
-        if (isErrorNode(node)) {
-            throw new Error(node.message);
-        }
-        if (!isDirectoryNode(node)) {
-            throw new Error("Not a directory: " + absolutePath);
-        }
-        return { absolutePath: absolutePath, node: node };
+        return result;
     }
     return {
         getCurrentPath: getCurrentPath,

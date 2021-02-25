@@ -13,12 +13,7 @@ interface DirectoryNode {
     children: { [name: string]: FileSystemNode | null };
 }
 
-interface ErrorNode {
-    type: 'error';
-    message: string;
-}
-
-type FileSystemNode = FileNode | DirectoryNode | ErrorNode;
+type FileSystemNode = FileNode | DirectoryNode;
 
 function file(content: string, url?: string): FileNode {
     return { type: 'file', content, url };
@@ -32,20 +27,12 @@ function dir(children: { [name: string]: FileSystemNode }): DirectoryNode {
     return { type: 'directory', children };
 }
 
-function errorNode(message: string): ErrorNode {
-    return { type: 'error', message };
-}
-
 function isDirectoryNode(node: FileSystemNode | null): node is DirectoryNode {
     return node !== null && node.type === 'directory';
 }
 
 function isFileNode(node: FileSystemNode | null): node is FileNode {
     return node !== null && node.type === 'file';
-}
-
-function isErrorNode(node: FileSystemNode | null): node is ErrorNode {
-    return node !== null && node.type === 'error';
 }
 
 function isDirectory(entry: FileSystemEntry): entry is DirectoryEntry {
@@ -60,7 +47,7 @@ interface NodeResult<TNode extends FileSystemNode> {
 interface FileSystem {
     getCurrentPath(): string;
     setCurrentPath(path: string): void;
-    getNode(path: string): FileSystemNode | null;
+    getNode(path: string): NodeResult<FileSystemNode>;
     getDirectoryNode(path: string): NodeResult<DirectoryNode>;
 }
 
@@ -127,32 +114,16 @@ function FileSystem(root: DirectoryNode, sessionStorage: SessionStorage): FileSy
     }
 
     function setCurrentPath(path: string) {
-        const absolutePath = getAbsolutePath(path, currentPath);
-        if (!absolutePath) {
-            throw new Error(`Invalid path: ${path}`);
-        }
+        const node = getDirectoryNode(path);
 
-        const node = getNode(absolutePath);
-        if (isErrorNode(node)) {
-            throw new Error(node.message);
-        }
-
-        if (!isDirectoryNode(node)) {
-            throw new Error(`Not a directory: ${absolutePath}`);
-        }
-
-        currentPath = (
-            absolutePath[absolutePath.length - 1] !== '/'
-            ? absolutePath + '/'
-            : absolutePath
-        );
+        currentPath = node.absolutePath;
         sessionStorage['currentPath'] = currentPath;
     }
 
-    function getNode(path: string): FileSystemNode {
+    function getNode(path: string): NodeResult<FileSystemNode> {
         const absolutePath = getAbsolutePath(path, currentPath);
         if (absolutePath == null) {
-            return errorNode(`Invalid path: ${path}`);
+            throw new Error(`Invalid path: ${path}`);
         }
 
         const segments = getPathSegments(absolutePath);
@@ -170,41 +141,38 @@ function FileSystem(root: DirectoryNode, sessionStorage: SessionStorage): FileSy
             const childNode = currentNode.children[nodeName];
             if (!childNode) {
                 const invalidSubpath = segments.slice(0, i + 1).join('');
-                return errorNode(`Path does not exist: ${invalidSubpath}`);
+                throw new Error(`Path does not exist: ${invalidSubpath}`);
             }
 
             if (isFileNode(childNode)) {
                 if (i < segments.length - 1 || segment[segment.length - 1] === '/') {
                     const invalidSubpath = segments.slice(0, i + 1).join('');
-                    return errorNode(`Not a directory: ${invalidSubpath}`);
+                    throw new Error(`Not a directory: ${invalidSubpath}`);
                 }
 
-                return childNode;
+                return { absolutePath, node: childNode };
             }
             else if (isDirectoryNode(childNode)) {
                 currentNode = childNode;
             }
         }
 
-        return currentNode;
+        const resultPath = (
+            absolutePath[absolutePath.length - 1] !== '/'
+            ? absolutePath + '/'
+            : absolutePath
+        )
+
+        return { absolutePath: resultPath, node: currentNode };
     }
 
     function getDirectoryNode(path: string): NodeResult<DirectoryNode> {
-        const absolutePath = getAbsolutePath(path, currentPath);
-        if (!absolutePath) {
-            throw new Error(`Invalid path: ${path}`);
+        const result = getNode(path);
+        if (!isDirectoryNode(result.node)) {
+            throw new Error(`Not a directory: ${result.absolutePath}`);
         }
 
-        const node = getNode(absolutePath);
-        if (isErrorNode(node)) {
-            throw new Error(node.message);
-        }
-
-        if (!isDirectoryNode(node)) {
-            throw new Error(`Not a directory: ${absolutePath}`);
-        }
-
-        return { absolutePath, node };
+        return (result as NodeResult<DirectoryNode>);
     }
 
     return {

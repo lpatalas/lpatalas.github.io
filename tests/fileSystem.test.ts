@@ -62,16 +62,13 @@ describe('FileSystem', () => {
         });
 
         const testCases = [
-            { input: '', expected: fsRoot },
-            { input: '/', expected: fsRoot },
-            { input: '/a.txt', expected: aTxt },
-            { input: '/b', expected: bDir },
-            { input: '/b/', expected: bDir },
-            { input: '/b/c.txt', expected: cTxt },
-            { input: '/a.txt/', expected: errorNode('Not a directory: /a.txt/'), },
-            { input: '/c/c.txt', expected: errorNode('Path does not exist: /c/') },
-            { input: '/../..', expected: errorNode('Invalid path: /../..') }
-        ]
+            { input: '', expected: { absolutePath: '/', node: fsRoot } },
+            { input: '/', expected: { absolutePath: '/', node: fsRoot } },
+            { input: '/a.txt', expected: { absolutePath: '/a.txt', node: aTxt } },
+            { input: '/b', expected: { absolutePath: '/b/', node: bDir } },
+            { input: '/b/', expected: { absolutePath: '/b/', node: bDir } },
+            { input: '/b/c.txt', expected: { absolutePath: '/b/c.txt', node: cTxt } },
+        ];
 
         testCases.forEach(({ input, expected }) => {
             it(`should return correct file system node for path ${input}`, () => {
@@ -79,6 +76,20 @@ describe('FileSystem', () => {
                 const result = fileSystem.getNode(input);
                 expect(result).toEqual(expected);
             });
-        })
+        });
+
+        const errorTestCases = [
+            { input: '/a.txt/', expectedError: 'Not a directory: /a.txt/' },
+            { input: '/c/c.txt', expectedError: 'Path does not exist: /c/' },
+            { input: '/../..', expectedError: 'Invalid path: /../..' }
+        ];
+
+        errorTestCases.forEach(({ input, expectedError }) => {
+            it(`should return correct file system node for path ${input}`, () => {
+                const fileSystem = FileSystem(fsRoot, {});
+                const act = () => fileSystem.getNode(input);
+                expect(act).toThrowError(expectedError);
+            });
+        });
     })
 });
