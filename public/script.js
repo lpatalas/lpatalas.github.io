@@ -9,7 +9,15 @@ function CommandDispatcher(tokenize, commands) {
             var commandName = tokens[0], args = tokens.slice(1);
             var command = commands[commandName];
             if (command) {
-                return command.apply({}, args);
+                try {
+                    return command.apply({}, args);
+                }
+                catch (e) {
+                    if (e instanceof Error) {
+                        return "ERROR '" + commandName + "': " + e.message;
+                    }
+                    return "ERROR: " + e;
+                }
             }
             else {
                 return "Unknown command: " + commandName;
@@ -22,13 +30,17 @@ function CommandDispatcher(tokenize, commands) {
 }
 function Commands(fileSystem) {
     var commands = {
-        "cd": changeDir,
-        "cls": clearScreen,
-        "echo": echo,
-        "help": showHelp,
-        "ls": printDir
+        cd: cd,
+        cls: cls,
+        echo: echo,
+        help: help,
+        ls: ls
     };
-    function clearScreen() {
+    function cd(path) {
+        fileSystem.setCurrentPath(path);
+        return '';
+    }
+    function cls() {
         document.getElementById('console').innerHTML = '';
         return '';
     }
@@ -39,127 +51,183 @@ function Commands(fileSystem) {
         }
         return "<pre>" + args.join(' ') + "</pre>";
     }
-    function printDir(path) {
-        var fullPath = fileSystem.getFullPath(path || '.');
-        if (!fullPath) {
-            return "Invalid path: " + path;
-        }
-        var content = fileSystem.getDirectory(fullPath);
-        if (typeof content === 'string') {
-            return "Not a directory: " + content;
-        }
-        if (content) {
-            var output = '';
-            for (var prop in content) {
-                if (typeof content[prop] === 'string') {
-                    output += "<div><a href=\"" + content[prop] + "\">" + prop + "</a></div>";
-                }
-                else {
-                    output += "<div>" + prop + "/</div>";
-                }
-            }
-            return output;
-        }
-        else {
-            return "Invalid directory: " + path;
-        }
-    }
-    function changeDir(path) {
-        var fullPath = fileSystem.getFullPath(path || '.');
-        if (!fullPath) {
-            return "Invalid path: " + path;
-        }
-        var content = fileSystem.getDirectory(fullPath);
-        if (content) {
-            if (typeof content === 'string') {
-                document.location = content;
-            }
-            else {
-                fileSystem.setCurrentPath(fullPath);
-            }
-            return '';
-        }
-        else {
-            return "Invalid path: " + path;
-        }
-    }
-    function showHelp() {
+    function help() {
         var commandNames = Object.getOwnPropertyNames(commands).join(', ');
         return "\n            Available commands: " + commandNames + ".<br>\n            If you need more help then create an issue here:\n            <a href=\"https://github.com/lpatalas/lpatalas.github.io/issues\">\n                https://github.com/lpatalas/lpatalas.github.io/issues\n            </a>";
     }
-    return commands;
-}
-function FileSystem() {
-    var currentPath = window.sessionStorage['currentPath'] || '~';
-    var root = {
-        "~": {
-            "projects": {
-                "linespace": "https://linespace.lpatalas.com",
-                "fblocks": "https://fblocks.lpatalas.com",
-                "mandelbrot": "https://mandelbrot.lpatalas.com"
-            },
-            "links": {
-                "github": "https://github.com/lpatalas"
+    function ls(path) {
+        path = path || fileSystem.getCurrentPath();
+        var node = fileSystem.getDirectoryNode(path).node;
+        var outputLines = [];
+        for (var name in node.children) {
+            var childNode = node.children[name];
+            if (isDirectoryNode(childNode)) {
+                outputLines.push("<div>" + name + "/</div>");
+            }
+            else if (isFileNode(childNode)) {
+                if (childNode.url) {
+                    outputLines.push("<div><a href=\"" + childNode.url + "\">" + name + "</a></div>");
+                }
+                else {
+                    outputLines.push("<div>" + name + "</div>");
+                }
             }
         }
-    };
+        return outputLines.join('');
+    }
+    return commands;
+}
+function file(content, url) {
+    return { type: 'file', content: content, url: url };
+}
+function fileUrl(url) {
+    return file(url, url);
+}
+function dir(children) {
+    return { type: 'directory', children: children };
+}
+function errorNode(message) {
+    return { type: 'error', message: message };
+}
+function isDirectoryNode(node) {
+    return node !== null && node.type === 'directory';
+}
+function isFileNode(node) {
+    return node !== null && node.type === 'file';
+}
+function isErrorNode(node) {
+    return node !== null && node.type === 'error';
+}
+function isDirectory(entry) {
+    return typeof entry !== 'string';
+}
+function getPathSegments(path) {
+    var segments = [];
+    var segmentStartIndex = 0;
+    for (var i = 0; i < path.length; i++) {
+        if (path[i] === '/') {
+            var segment = path.substring(segmentStartIndex, i + 1);
+            segments.push(segment);
+            segmentStartIndex = i + 1;
+        }
+    }
+    if (segmentStartIndex < path.length) {
+        segments.push(path.substring(segmentStartIndex));
+    }
+    return segments;
+}
+function getAbsolutePath(absoluteOrRelativePath, currentPath) {
+    if (absoluteOrRelativePath.length === 0 || absoluteOrRelativePath == '.') {
+        return currentPath;
+    }
+    var absolutePath = (absoluteOrRelativePath[0] === '/'
+        ? absoluteOrRelativePath
+        : currentPath + absoluteOrRelativePath);
+    var segments = getPathSegments(absolutePath);
+    var normalizedSegments = [];
+    for (var _i = 0, segments_1 = segments; _i < segments_1.length; _i++) {
+        var segment = segments_1[_i];
+        if (segment === '..' || segment === '../') {
+            if (normalizedSegments.length <= 1) {
+                return null;
+            }
+            else {
+                normalizedSegments.pop();
+            }
+        }
+        else {
+            normalizedSegments.push(segment);
+        }
+    }
+    return normalizedSegments.join('');
+}
+function FileSystem(root, sessionStorage) {
+    var currentPath = sessionStorage['currentPath'] || '/';
     function getCurrentPath() {
         return currentPath;
     }
     function setCurrentPath(path) {
-        currentPath = path;
+        var absolutePath = getAbsolutePath(path, currentPath);
+        if (!absolutePath) {
+            throw new Error("Invalid path: " + path);
+        }
+        var node = getNode(absolutePath);
+        if (isErrorNode(node)) {
+            throw new Error(node.message);
+        }
+        if (!isDirectoryNode(node)) {
+            throw new Error("Not a directory: " + absolutePath);
+        }
+        currentPath = (absolutePath[absolutePath.length - 1] !== '/'
+            ? absolutePath + '/'
+            : absolutePath);
         sessionStorage['currentPath'] = currentPath;
     }
-    function getDirectory(path) {
-        var segments = path.split('/');
-        var currentDir = root;
-        var matchedSegments = 0;
-        while (matchedSegments < segments.length) {
-            var childDir = currentDir[segments[matchedSegments]];
-            if (typeof childDir === 'string') {
-                break;
+    function getNode(path) {
+        var absolutePath = getAbsolutePath(path, currentPath);
+        if (absolutePath == null) {
+            return errorNode("Invalid path: " + path);
+        }
+        var segments = getPathSegments(absolutePath);
+        var currentNode = root;
+        for (var i = 1; i < segments.length; i++) {
+            var segment = segments[i];
+            var nodeName = (segment[segment.length - 1] === '/'
+                ? segment.substring(0, segment.length - 1)
+                : segment);
+            var childNode = currentNode.children[nodeName];
+            if (!childNode) {
+                var invalidSubpath = segments.slice(0, i + 1).join('');
+                return errorNode("Path does not exist: " + invalidSubpath);
             }
-            currentDir = childDir;
-            if (!currentDir) {
-                break;
+            if (isFileNode(childNode)) {
+                if (i < segments.length - 1 || segment[segment.length - 1] === '/') {
+                    var invalidSubpath = segments.slice(0, i + 1).join('');
+                    return errorNode("Not a directory: " + invalidSubpath);
+                }
+                return childNode;
             }
-            matchedSegments++;
+            else if (isDirectoryNode(childNode)) {
+                currentNode = childNode;
+            }
         }
-        if (matchedSegments === segments.length) {
-            return currentDir;
-        }
-        else {
-            return null;
-        }
+        return currentNode;
     }
-    function getFullPath(path) {
-        if (path === '.') {
-            return currentPath;
+    function getDirectoryNode(path) {
+        var absolutePath = getAbsolutePath(path, currentPath);
+        if (!absolutePath) {
+            throw new Error("Invalid path: " + path);
         }
-        else if (path === '..') {
-            var segments = currentPath.split('/');
-            if (segments.length > 1) {
-                return segments.slice(0, segments.length - 1).join('/');
-            }
-            else {
-                return null;
-            }
+        var node = getNode(absolutePath);
+        if (isErrorNode(node)) {
+            throw new Error(node.message);
         }
-        else {
-            return currentPath + '/' + path;
+        if (!isDirectoryNode(node)) {
+            throw new Error("Not a directory: " + absolutePath);
         }
+        return { absolutePath: absolutePath, node: node };
     }
     return {
         getCurrentPath: getCurrentPath,
         setCurrentPath: setCurrentPath,
-        getDirectory: getDirectory,
-        getFullPath: getFullPath
+        getNode: getNode,
+        getDirectoryNode: getDirectoryNode
     };
 }
 ;
 main();
 function main() {
-    var fileSystem = FileSystem();
+    var rootDirectory = dir({
+        "projects": dir({
+            "linespace": fileUrl("https://linespace.lpatalas.com"),
+            "fblocks": fileUrl("https://fblocks.lpatalas.com"),
+            "mandelbrot": fileUrl("https://mandelbrot.lpatalas.com")
+        }),
+        "links": dir({
+            "github": fileUrl("https://github.com/lpatalas")
+        })
+    });
+    var fileSystem = FileSystem(rootDirectory, window.sessionStorage);
     var commands = Commands(fileSystem);
     var commandDispatcher = CommandDispatcher(tokenize, commands);
     var terminal = Terminal(commandDispatcher, fileSystem);
@@ -208,7 +276,7 @@ function Terminal(commandDispatcher, fileSystem) {
         var input = getCurrentInputElement();
         input.id = '';
         var output = commandDispatcher.execute(input.innerText);
-        document.getElementById('console').innerHTML += "\n            <div class=\"out\">\n                <pre>" + output + "</pre>\n            </div>\n            <div class=\"in\">\n                <span class=\"cwd\">" + fileSystem.getCurrentPath() + "</span>&gt; <pre class=\"input\" id=\"currentInput\"></pre>\n            </div>\n            ";
+        document.getElementById('console').innerHTML += "\n            <div class=\"out\">\n                " + output + "\n            </div>\n            <div class=\"in\">\n                <span class=\"cwd\">" + fileSystem.getCurrentPath() + "</span>&gt; <pre class=\"input\" id=\"currentInput\"></pre>\n            </div>\n            ";
         getCurrentInputElement().scrollIntoView();
     }
     findLastElement('.input').id = 'currentInput';

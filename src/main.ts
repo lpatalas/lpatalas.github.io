@@ -3,12 +3,12 @@ main();
 function main() {
     const rootDirectory = dir({
         "projects": dir({
-            "linespace": file("https://linespace.lpatalas.com"),
-            "fblocks": file("https://fblocks.lpatalas.com"),
-            "mandelbrot": file("https://mandelbrot.lpatalas.com")
+            "linespace": fileUrl("https://linespace.lpatalas.com"),
+            "fblocks": fileUrl("https://fblocks.lpatalas.com"),
+            "mandelbrot": fileUrl("https://mandelbrot.lpatalas.com")
         }),
         "links": dir({
-            "github": file("https://github.com/lpatalas")
+            "github": fileUrl("https://github.com/lpatalas")
         })
     });
 

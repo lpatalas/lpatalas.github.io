@@ -12,7 +12,16 @@ function CommandDispatcher(tokenize: (input: string) => string[], commands: Comm
             const [commandName, ...args] = tokens;
             const command = commands[commandName];
             if (command) {
-                return command.apply({}, args);
+                try {
+                    return command.apply({}, args);
+                }
+                catch (e) {
+                    if (e instanceof Error) {
+                        return `ERROR '${commandName}': ${e.message}`;
+                    }
+
+                    return `ERROR: ${e}`;
+                }
             }
             else {
                 return `Unknown command: ${commandName}`;

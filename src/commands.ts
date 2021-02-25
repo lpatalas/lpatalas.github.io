@@ -2,16 +2,21 @@ type CommandMap = {
     [name: string]: (...args: string[]) => string
 };
 
-function Commands(fileSystem: FileSystem): CommandMap {
+function Commands(fileSystem: FileSystem) {
     const commands = {
-        "cd": changeDir,
-        "cls": clearScreen,
-        "echo": echo,
-        "help": showHelp,
-        "ls": printDir
+        cd,
+        cls,
+        echo,
+        help,
+        ls
     };
+    
+    function cd(path: string) {
+        fileSystem.setCurrentPath(path);
+        return '';
+    }
 
-    function clearScreen() {
+    function cls() {
         document.getElementById('console')!.innerHTML = '';
         return '';
     }
@@ -20,57 +25,7 @@ function Commands(fileSystem: FileSystem): CommandMap {
         return `<pre>${args.join(' ')}</pre>`;
     }
     
-    function printDir(path: string) {
-        var fullPath = getAbsolutePath(path || '.', fileSystem.getCurrentPath());
-        if (!fullPath) {
-            return `Invalid path: ${path}`;
-        }
-    
-        var content = fileSystem.getDirectory(fullPath);
-        if (typeof content === 'string') {
-            return `Not a directory: ${content}`;
-        }
-        
-        if (content) {
-            var output = '';
-            for (var prop in content) {
-                if (typeof content[prop] === 'string') {
-                    output += `<div><a href="${content[prop]}">${prop}</a></div>`;
-                }
-                else {
-                    output += `<div>${prop}/</div>`;
-                }
-            }
-            return output;
-        }
-        else {
-            return `Invalid directory: ${path}`;
-        }
-    }
-    
-    function changeDir(path: string) {
-        var fullPath = getAbsolutePath(path || '.', fileSystem.getCurrentPath());
-        if (!fullPath) {
-            return `Invalid path: ${path}`;
-        }
-    
-        var content = fileSystem.getDirectory(fullPath);
-        if (content) {
-            if (typeof content === 'string') {
-                document.location = content;
-            }
-            else {
-                fileSystem.setCurrentPath(fullPath);
-            }
-    
-            return '';
-        }
-        else {
-            return `Invalid path: ${path}`; 
-        }
-    }
-    
-    function showHelp() {
+    function help() {
         var commandNames = Object.getOwnPropertyNames(commands).join(', ');
         return `
             Available commands: ${commandNames}.<br>
@@ -78,6 +33,30 @@ function Commands(fileSystem: FileSystem): CommandMap {
             <a href="https://github.com/lpatalas/lpatalas.github.io/issues">
                 https://github.com/lpatalas/lpatalas.github.io/issues
             </a>`;
+    }
+    
+    function ls(path?: string) {
+        path = path || fileSystem.getCurrentPath();
+        const node = fileSystem.getDirectoryNode(path).node;
+
+        const outputLines = [];
+
+        for (var name in node.children) {
+            const childNode = node.children[name];
+            if (isDirectoryNode(childNode)) {
+                outputLines.push(`<div>${name}/</div>`);
+            }
+            else if (isFileNode(childNode)) {
+                if (childNode.url) {
+                    outputLines.push(`<div><a href="${childNode.url}">${name}</a></div>`);
+                }
+                else {
+                    outputLines.push(`<div>${name}</div>`)
+                }
+            }
+        }
+
+        return outputLines.join('');
     }
 
     return commands; 
