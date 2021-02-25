@@ -9,17 +9,38 @@ interface FileNode {
 
 interface DirectoryNode {
     type: 'directory';
-    children: { [name: string]: FileSystemNode };
+    children: { [name: string]: FileSystemNode | null };
 }
 
-type FileSystemNode = FileNode | DirectoryNode;
+interface ErrorNode {
+    type: 'error';
+    message: string;
+}
 
-function MkFile(content: string): FileNode {
+type FileSystemNode = FileNode | DirectoryNode | ErrorNode;
+
+function file(content: string): FileNode {
     return { type: 'file', content };
 }
 
-function MkDir(children: { [name: string]: FileSystemNode }): DirectoryNode {
+function dir(children: { [name: string]: FileSystemNode }): DirectoryNode {
     return { type: 'directory', children };
+}
+
+function errorNode(message: string): ErrorNode {
+    return { type: 'error', message };
+}
+
+function isDirectoryNode(node: FileSystemNode): node is DirectoryNode {
+    return node.type === 'directory';
+}
+
+function isFileNode(node: FileSystemNode): node is FileNode {
+    return node.type === 'file';
+}
+
+function isErrorNode(node: FileSystemNode): node is ErrorNode {
+    return node.type === 'error';
 }
 
 function isDirectory(entry: FileSystemEntry): entry is DirectoryEntry {
@@ -30,6 +51,7 @@ interface FileSystem {
     getCurrentPath(): string;
     setCurrentPath(path: string): void;
     getDirectory(path: string): DirectoryEntry | null;
+    getNode(path: string): FileSystemNode | null;
 }
 
 interface SessionStorage {
@@ -86,7 +108,7 @@ function getAbsolutePath(absoluteOrRelativePath: string, currentPath: string) {
     return normalizedSegments.join('');
 }
 
-function FileSystem(root: DirectoryEntry, sessionStorage: SessionStorage): FileSystem {
+function FileSystem(root: DirectoryNode, sessionStorage: SessionStorage): FileSystem {
 
     let currentPath = sessionStorage['currentPath'] || '~';
 
@@ -100,35 +122,86 @@ function FileSystem(root: DirectoryEntry, sessionStorage: SessionStorage): FileS
     }
 
     function getDirectory(path: string) {
-        const segments = path.split('/');
-        let currentDir: DirectoryEntry = root;
-        let matchedSegments = 0;
+        const absolutePath = getAbsolutePath(path, currentPath);
+        const segments = getPathSegments(path);
+
+        let currentNode = root;
+
+        for (let i = 1; i < segments.length; i++) {
+
+        }
+
+        return null;
+        // const segments = path.split('/');
+        // let currentDir: DirectoryNode = root;
+        // let matchedSegments = 0;
     
-        while (matchedSegments < segments.length) {
-            const childDir = currentDir[segments[matchedSegments]];
-            if (typeof childDir === 'string') {
-                break;
-            }
+        // while (matchedSegments < segments.length) {
+        //     const childDir = currentDir[segments[matchedSegments]];
+        //     if (typeof childDir === 'string') {
+        //         break;
+        //     }
     
-            currentDir = childDir;
-            if (!currentDir) {
-                break;
+        //     currentDir = childDir;
+        //     if (!currentDir) {
+        //         break;
+        //     }
+
+        //     matchedSegments++;
+        // }
+    
+        // if (matchedSegments === segments.length) {
+        //     return currentDir;
+        // }
+        // else {
+        //     return null;
+        // }
+    };
+
+    function getNode(path: string): FileSystemNode {
+        const absolutePath = getAbsolutePath(path, currentPath);
+        if (absolutePath == null) {
+            return errorNode(`Invalid path: ${path}`);
+        }
+        
+        const segments = getPathSegments(absolutePath);
+
+        let currentNode = root;
+
+        for (let i = 1; i < segments.length; i++) {
+            const segment = segments[i];
+            const nodeName = (
+                segment[segment.length - 1] === '/'
+                ? segment.substring(0, segment.length - 1)
+                : segment
+            );
+
+            const childNode = currentNode.children[nodeName];
+            if (!childNode) {
+                const invalidSubpath = segments.slice(0, i + 1).join('');
+                return errorNode(`Path does not exist: ${invalidSubpath}`);
             }
 
-            matchedSegments++;
+            if (isFileNode(childNode)) {
+                if (i < segments.length - 1 || segment[segment.length - 1] === '/') {
+                    const invalidSubpath = segments.slice(0, i + 1).join('');
+                    return errorNode(`Not a directory: ${invalidSubpath}`);
+                }
+
+                return childNode;
+            }
+            else if (isDirectoryNode(childNode)) {
+                currentNode = childNode;
+            }
         }
-    
-        if (matchedSegments === segments.length) {
-            return currentDir;
-        }
-        else {
-            return null;
-        }
+
+        return currentNode;
     }
 
     return {
         getCurrentPath,
         setCurrentPath,
-        getDirectory
+        getDirectory,
+        getNode
     }
 };

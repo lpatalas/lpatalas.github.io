@@ -1,18 +1,16 @@
 main();
 
 function main() {
-    const rootDirectory = {
-        "~": {
-            "projects": {
-                "linespace": "https://linespace.lpatalas.com",
-                "fblocks": "https://fblocks.lpatalas.com",
-                "mandelbrot": "https://mandelbrot.lpatalas.com"
-            },
-            "links": {
-                "github": "https://github.com/lpatalas"
-            }
-        }
-    };
+    const rootDirectory = dir({
+        "projects": dir({
+            "linespace": file("https://linespace.lpatalas.com"),
+            "fblocks": file("https://fblocks.lpatalas.com"),
+            "mandelbrot": file("https://mandelbrot.lpatalas.com")
+        }),
+        "links": dir({
+            "github": file("https://github.com/lpatalas")
+        })
+    });
 
     const fileSystem = FileSystem(rootDirectory, window.sessionStorage);
     const commands = Commands(fileSystem);

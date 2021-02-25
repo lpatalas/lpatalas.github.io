@@ -48,4 +48,37 @@ describe('FileSystem', () => {
             });
         });
     });
+
+    describe('getNode', () => {
+        const aTxt = file('a.txt content');
+        const cTxt = file('c.txt content');
+        const bDir = dir({
+            'c.txt': cTxt
+        });
+
+        const fsRoot = dir({
+            'a.txt': aTxt,
+            'b': bDir
+        });
+
+        const testCases = [
+            { input: '', expected: fsRoot },
+            { input: '/', expected: fsRoot },
+            { input: '/a.txt', expected: aTxt },
+            { input: '/b', expected: bDir },
+            { input: '/b/', expected: bDir },
+            { input: '/b/c.txt', expected: cTxt },
+            { input: '/a.txt/', expected: errorNode('Not a directory: /a.txt/'), },
+            { input: '/c/c.txt', expected: errorNode('Path does not exist: /c/') },
+            { input: '/../..', expected: errorNode('Invalid path: /../..') }
+        ]
+
+        testCases.forEach(({ input, expected }) => {
+            it(`should return correct file system node for path ${input}`, () => {
+                const fileSystem = FileSystem(fsRoot, {});
+                const result = fileSystem.getNode(input);
+                expect(result).toEqual(expected);
+            });
+        })
+    })
 });

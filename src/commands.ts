@@ -21,7 +21,7 @@ function Commands(fileSystem: FileSystem): CommandMap {
     }
     
     function printDir(path: string) {
-        var fullPath = fileSystem.getAbsolutePath(path || '.');
+        var fullPath = getAbsolutePath(path || '.', fileSystem.getCurrentPath());
         if (!fullPath) {
             return `Invalid path: ${path}`;
         }
@@ -49,7 +49,7 @@ function Commands(fileSystem: FileSystem): CommandMap {
     }
     
     function changeDir(path: string) {
-        var fullPath = fileSystem.getAbsolutePath(path || '.');
+        var fullPath = getAbsolutePath(path || '.', fileSystem.getCurrentPath());
         if (!fullPath) {
             return `Invalid path: ${path}`;
         }
