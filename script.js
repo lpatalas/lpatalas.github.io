@@ -33,6 +33,7 @@ function Commands(fileSystem) {
         cd: cd,
         cls: cls,
         echo: echo,
+        exit: exit,
         help: help,
         ls: ls
     };
@@ -56,6 +57,10 @@ function Commands(fileSystem) {
             args[_i] = arguments[_i];
         }
         return "<pre>" + args.join(' ') + "</pre>";
+    }
+    function exit() {
+        window.close();
+        return '';
     }
     function help() {
         var commandNames = Object.getOwnPropertyNames(commands).join(', ');

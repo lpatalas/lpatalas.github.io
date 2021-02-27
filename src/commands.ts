@@ -7,6 +7,7 @@ function Commands(fileSystem: FileSystem) {
         cd,
         cls,
         echo,
+        exit,
         help,
         ls
     };
@@ -31,6 +32,11 @@ function Commands(fileSystem: FileSystem) {
 
     function echo(...args: string[]) {
         return `<pre>${args.join(' ')}</pre>`;
+    }
+
+    function exit() {
+        window.close();
+        return '';
     }
     
     function help() {
