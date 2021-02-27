@@ -37,7 +37,13 @@ function Commands(fileSystem) {
         ls: ls
     };
     function cd(path) {
-        fileSystem.setCurrentPath(path);
+        var node = fileSystem.getNode(path).node;
+        if (isFileNode(node) && node.url) {
+            window.location.href = node.url;
+        }
+        else {
+            fileSystem.setCurrentPath(path);
+        }
         return '';
     }
     function cls() {

@@ -12,7 +12,15 @@ function Commands(fileSystem: FileSystem) {
     };
     
     function cd(path: string) {
-        fileSystem.setCurrentPath(path);
+        const node = fileSystem.getNode(path).node;
+        
+        if (isFileNode(node) && node.url) {
+            window.location.href = node.url;
+        }
+        else {
+            fileSystem.setCurrentPath(path);
+        }
+
         return '';
     }
 
